@@ -14,13 +14,13 @@ py Alexander Vezos 1154053 ICT703 Task 2
 ### Option 2: Using Virtual Environment
 ```bash
 # Create virtual environment
-py -m venv grading_env
+py -m venv [your venv name]
 
 # Activate virtual environment
 # Windows:
-grading_env\Scripts\activate
+[your venv name]\Scripts\activate
 # Mac/Linux:
-source grading_env/bin/activate
+source [your venv name]/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
