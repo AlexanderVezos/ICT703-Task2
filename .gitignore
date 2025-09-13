@@ -2,10 +2,16 @@
 AlexanderVezos_1154053_ICT703_Task2_Env/
 .vscode/
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
+*.pyc
 
 # C extensions
 *.so
