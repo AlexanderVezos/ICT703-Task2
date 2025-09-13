@@ -4,6 +4,8 @@ import ssl # For secure connection to DB
 import redis # Cloud NoSQL Service to store user information
 from flask import Flask, render_template # GUI front end using HTML
 from dotenv import load_dotenv # Securely store DB credentials
+import webbrowser
+import threading
 
 # Load secured DB credentials
 load_dotenv() 
@@ -30,5 +32,12 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Redis connection failed: {e}")
     
-    print("Flask app running at: http://localhost:5000")
+        # Auto-open browser after a short delay
+    def open_browser():
+        webbrowser.open('http://localhost:5000')
+    
+    timer = threading.Timer(1.5, open_browser)
+    timer.daemon = True
+    timer.start()
+    
     gui.run(debug=False, host='0.0.0.0', port=5000)
