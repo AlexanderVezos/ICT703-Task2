@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICT703 Task 2</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <h2>{{ module[1] }}</h2>
+    <h3>Quiz Question:</h3>
+    <p>{{ module[2] }}</p>
+
+    {% if error %}
+        <h3>{{ error }}</h3>
+    {% endif %}
+
+    <form method="POST" action="/submit_training/{{ module[0] }}">
+        <input type="text" name="answer" placeholder="Your answer" required><br><br>
+        <button type="submit">Submit Answer</button>
+    </form>
+
+    <a href="/">Back to Dashboard</a>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>

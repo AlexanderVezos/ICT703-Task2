@@ -9,7 +9,44 @@
 </head>
 
 <body>
-    <h1>Hello World</h1>
+    <h2>My Training Dashboard</h2>
+
+    <button onclick="showIncomplete()">Show Incomplete Training</button>
+    <button onclick="showCompleted()">Show Completed Training</button>
+
+    <div id="incomplete-table">
+        <h3>Incomplete Training</h3>
+        <table border="1">
+            <tr>
+                <th>Training Module</th>
+                <th>Created Date</th>
+                <th>Action</th>
+            </tr>
+            {% for row in incomplete_training %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[3] }}</td>
+                <td><a href="/training/{{ row[2] }}">Take Training</a></td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div id="completed-table" style="display:none;">
+        <h3>Completed Training</h3>
+        <table border="1">
+            <tr>
+                <th>Training Module</th>
+                <th>Completed Date</th>
+            </tr>
+            {% for row in completed_training %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
