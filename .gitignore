@@ -1,6 +1,7 @@
-# Development Virtual Environment
+# Project Specific
 AlexanderVezos_1154053_ICT703_Task2_Env/
 .vscode/
+ict703-task2.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

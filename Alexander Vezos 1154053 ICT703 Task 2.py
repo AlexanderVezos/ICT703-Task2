@@ -81,8 +81,8 @@ def init_db():
                 INSERT OR IGNORE INTO training_modules (title, quiz_question, quiz_answer) 
                 VALUES (?, ?, ?)
             ''', ('Cybersecurity Basics', 
-                'What is the first rule of cybersecurity?', 
-                'Never trust, always verify'))
+                'What does SQL stand for?', 
+                'Structured Query Language'))
 
         conn.commit()
 
