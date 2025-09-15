@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <h2>My Training Dashboard</h2>
+    <h2>Training Dashboard</h2>
 
     <button onclick="showIncomplete()">Show Incomplete Training</button>
     <button onclick="showCompleted()">Show Completed Training</button>
@@ -19,14 +19,16 @@
         <table border="1">
             <tr>
                 <th>Training Module</th>
-                <th>Created Date</th>
+                <th>Length</th>
+                <th>Creation Date</th>
                 <th>Action</th>
             </tr>
             {% for row in incomplete_training %}
             <tr>
                 <td>{{ row[0] }}</td>
-                <td>{{ row[3] }}</td>
-                <td><a href="/training/{{ row[2] }}">Take Training</a></td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[4] }}</td>
+                <td><a href="/training/{{ row[3] }}">Take Training</a></td>
             </tr>
             {% endfor %}
         </table>
@@ -37,7 +39,7 @@
         <table border="1">
             <tr>
                 <th>Training Module</th>
-                <th>Completed Date</th>
+                <th>Completion Date</th>
             </tr>
             {% for row in completed_training %}
             <tr>

@@ -29,9 +29,10 @@ def init_db():
         
         # Training modules table
         cursor.execute('''
-            CREATE TABLE training_modules (
+            CREATE TABLE IF NOT EXISTS training_modules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT UNIQUE NOT NULL,
+                length TEXT NOT NULL,
                 quiz_question TEXT NOT NULL,
                 quiz_answer TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -78,9 +79,9 @@ def init_db():
 
         if module_count == 0: # Only insert if no modules exist
             cursor.execute('''
-                INSERT OR IGNORE INTO training_modules (title, quiz_question, quiz_answer) 
-                VALUES (?, ?, ?)
-            ''', ('Cybersecurity Basics', 
+                INSERT OR IGNORE INTO training_modules (title, length, quiz_question, quiz_answer) 
+                VALUES (?, ?, ?, ?)
+            ''', ('Database 101', '10 minutes',
                 'What does SQL stand for?', 
                 'Structured Query Language'))
 
@@ -103,7 +104,7 @@ def index():
     
     # Get incomplete training
     cursor.execute('''
-        SELECT tm.title, tm.quiz_question, tm.id, tm.created_at
+        SELECT tm.title, tm.length, tm.quiz_question, tm.id, tm.created_at
         FROM training_modules tm
         LEFT JOIN user_training_progress utp ON tm.id = utp.module_id AND utp.user_id = ?
         WHERE utp.completed IS NULL OR utp.completed = 0
