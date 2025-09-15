@@ -3,7 +3,7 @@ A simple Python program for a mock Cyber Security Training System
 
 ## Setup Instructions
 
-This project requires Python 3.x and uses external dependencies (Flask, Redis, etc.).
+This project requires Python 3.x and uses external dependencies (Mainly Flask).
 
 ### Option 1: Quick Setup
 ```bash
