@@ -79,7 +79,7 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL CHECK(length(username) <= 100),
+                username TEXT UNIQUE NOT NULL CHECK(length(username) <= 70),
                 password_hash TEXT NOT NULL,
                 is_admin BOOLEAN DEFAULT 0,
                 created_at DATE DEFAULT (datetime('now','localtime'))
@@ -90,7 +90,7 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS training_modules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT UNIQUE NOT NULL CHECK(length(title) <= 100),
+                title TEXT UNIQUE NOT NULL CHECK(length(title) <= 70),
                 length TEXT NOT NULL,
                 quiz_question TEXT NOT NULL,
                 quiz_answer TEXT NOT NULL,
