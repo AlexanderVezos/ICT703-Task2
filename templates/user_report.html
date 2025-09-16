@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICT703 Task 2</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <h2>Training Report for {{ username }}</h2>
+
+    <button onclick="window.location.href='/';">
+        Back to Admin Dashboard
+    </button>
+
+    <button class="toggle-btn" id="show-incomplete-btn" onclick="showSection('incomplete-table')">Show Incomplete Courses</button>
+    <button class="toggle-btn" id="show-completed-btn" onclick="showSection('completed-table')">Show Completed Courses</button>
+
+    <button class="no-print" id="print-incomplete" onclick="printTable('incomplete-table', 'Incomplete Courses')">Print Incomplete</button>
+    <button class="no-print" id="print-completed" onclick="printTable('completed-table', 'Completed Courses')">Print Completed</button>
+
+    <div id="incomplete-table" class="section-card">
+        <h3>Incomplete Courses</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Course Title</th>
+                        <th>Length</th>
+                        <th>Created Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in incomplete_courses %}
+                    <tr>
+                        <td>{{ course[0] }}</td>
+                        <td>{{ course[1] }}</td>
+                        <td>{{ course[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div id="completed-table" class="section-card" style="display:none;">
+        <h3>Completed Courses</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Course Title</th>
+                        <th>Length</th>
+                        <th>Completed Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in completed_courses %}
+                    <tr>
+                        <td>{{ course[0] }}</td>
+                        <td>{{ course[1] }}</td>
+                        <td>{{ course[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        window.currentUsername = "{{ username }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>

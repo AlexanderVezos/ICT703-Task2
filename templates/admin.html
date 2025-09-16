@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICT703 Task 2</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+<body>
+    <h2>Admin Dashboard</h2>
+    <button onclick="window.location.href='/logout';">
+        Logout
+    </button>
+
+    <button class="toggle-btn" id="add-module-btn" onclick="showSection('add-module-section')">Add Training Module</button>
+    <button class="toggle-btn" id="view-users-btn" onclick="showSection('users-section')">View All Users</button>
+    <button class="toggle-btn" id="view-modules-btn" onclick="showSection('modules-section')">View All Modules</button>
+
+    <div id="add-module-section" class="section-card">
+        <h2>Add New Training Module</h2>
+
+        {% if error %}
+            <h3 style="color: #fa709a;">{{ error }}</h3>
+        {% endif %}
+
+        <form method="POST" action="/admin/add_module">
+            <input type="text" name="title" placeholder="Module Title" required><br>
+            <input type="text" name="length" placeholder="Length (e.g., 15 minutes)" required><br>
+            <textarea name="question" placeholder="Quiz Question" rows="3" cols="50" required></textarea><br>
+            <input type="text" name="answer" placeholder="Correct Answer" required><br>
+            <button type="submit">Add Module</button>
+        </form>
+    </div>
+
+    <div id="users-section" class="section-card" style="display:none;">
+        <h2>All Users</h2>
+        <button class="no-print" onclick="printTable('users-section', 'All Users')">Print Users Table</button>
+        <div class="table-container">
+            <table id="users-table">
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Created</th>
+                    <th>Action</th>
+                </tr>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user[0] }}</td>
+                    <td>{{ user[1] }}</td>
+                    <td>{{ user[4] }}</td>
+                    <td><a href="/admin/user_report/{{ user[0] }}">View Report</a></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+
+    <div id="modules-section" class="section-card" style="display:none;">
+        <h2>All Training Modules</h2>
+        <button class="no-print" onclick="printTable('modules-section', 'All Training Modules')">Print Modules Table</button>
+        <div class="table-container">
+            <table id="modules-table">
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Length</th>
+                    <th>Question</th>
+                    <th>Answer</th>
+                    <th>Created</th>
+                </tr>
+                {% for module in modules %}
+                <tr>
+                    <td>{{ module[0] }}</td>
+                    <td>{{ module[1] }}</td>
+                    <td>{{ module[2] }}</td>
+                    <td>{{ module[3] }}</td>
+                    <td>{{ module[4] }}</td>
+                    <td>{{ module[5] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+    
+    <button onclick="confirmReset()">Reset Database</button>
+
+    <script>
+        var is_admin_page = {{ is_admin_page | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>

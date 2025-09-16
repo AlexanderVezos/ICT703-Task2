@@ -5,51 +5,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ICT703 Task 2</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 
 <body>
     <h2>Training Dashboard</h2>
+        <button onclick="window.location.href='/logout';">
+            Logout
+        </button>
 
-    <button onclick="showIncomplete()">Show Incomplete Training</button>
-    <button onclick="showCompleted()">Show Completed Training</button>
+    <button id="show-incomplete-btn" onclick="showSection('incomplete-table')">Show Incomplete Training</button>
+    <button id="show-completed-btn" onclick="showSection('completed-table')">Show Completed Training</button>
 
-    <div id="incomplete-table">
+    <div id="incomplete-table" class="section-card">
         <h3>Incomplete Training</h3>
-        <table border="1">
-            <tr>
-                <th>Training Module</th>
-                <th>Length</th>
-                <th>Creation Date</th>
-                <th>Action</th>
-            </tr>
-            {% for row in incomplete_training %}
-            <tr>
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[4] }}</td>
-                <td><a href="/training/{{ row[3] }}">Take Training</a></td>
-            </tr>
-            {% endfor %}
-        </table>
+        <div class="table-container">
+            <table>
+                <tr>
+                    <th>Training Module</th>
+                    <th>Length</th>
+                    <th>Creation Date</th>
+                    <th>Action</th>
+                </tr>
+                {% for row in incomplete_training %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[4] }}</td>
+                    <td><a href="/training/{{ row[3] }}">Take Training</a></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
     </div>
 
-    <div id="completed-table" style="display:none;">
+    <div id="completed-table" class="section-card" style="display:none;">
         <h3>Completed Training</h3>
-        <table border="1">
-            <tr>
-                <th>Training Module</th>
-                <th>Completion Date</th>
-            </tr>
-            {% for row in completed_training %}
-            <tr>
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
+        <div class="table-container">
+            <table>
+                <tr>
+                    <th>Training Module</th>
+                    <th>Completion Date</th>
+                </tr>
+                {% for row in completed_training %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
     </div>
 
+    <script>
+        var is_admin_page = {{ is_admin_page | tojson }};
+    </script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 
