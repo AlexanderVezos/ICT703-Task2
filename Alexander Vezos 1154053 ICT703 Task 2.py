@@ -1,11 +1,11 @@
 # Imports
 import os
-import sqlite3
-import hashlib
+import sqlite3 # For local SQL Database for data storage
+import hashlib # For keeping passwords secure
 import threading
 import webbrowser
 import re # Import the regular expression module
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session # For GUI front end using HTML
 
 DATABASE = 'ict703-task2.db'
 
@@ -13,9 +13,67 @@ DATABASE = 'ict703-task2.db'
 def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
+# Helper function to get database connection
+def get_db_connection():
+    return sqlite3.connect(DATABASE)
+
+# Helper function to check if user is admin
+def is_user_admin(user_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
+        result = cursor.fetchone()
+        return result[0] if result else False
+
+# Ensure user has progress records for all modules
+def ensure_user_progress_records(user_id):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM training_modules')
+        all_modules = cursor.fetchall()
+        
+        # Insert a progress record for each module if one doesn't exist
+        for module in all_modules:
+            cursor.execute('''
+                INSERT OR IGNORE INTO user_training_progress (user_id, module_id, completed, completed_at) 
+                VALUES (?, ?, 0, NULL)
+            ''', (user_id, module[0]))
+        conn.commit()
+
+# Create default users and modules if they don't exist
+def create_default_data(cursor):
+    # Create default admin user (username: 'admin', password: 'secret')
+    cursor.execute("SELECT id FROM users WHERE username = ?", ('admin',))
+    if not cursor.fetchone():
+        admin_password_hash = hash_password('secret')
+        cursor.execute('''
+            INSERT INTO users (username, password_hash, is_admin) 
+            VALUES (?, ?, ?)
+        ''', ('admin', admin_password_hash, 1))
+
+    # Fill database with test user
+    test_users = [('user1', 'password123')]
+    for username, password in test_users:
+        # Check if user exists before inserting
+        cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+        if not cursor.fetchone():
+            password_hash = hash_password(password)
+            cursor.execute('''
+                INSERT INTO users (username, password_hash, is_admin) 
+                VALUES (?, ?, ?)
+            ''', (username, password_hash, 0))
+
+    # Check if training modules already exist before inserting
+    cursor.execute('SELECT COUNT(*) FROM training_modules')
+    if cursor.fetchone()[0] == 0: # Only insert if no modules exist
+        cursor.execute('''
+            INSERT INTO training_modules (title, length, quiz_question, quiz_answer) 
+            VALUES (?, ?, ?, ?)
+        ''', ('Database 101', '10 minutes', 'What does SQL stand for?', 'Structured Query Language'))
+
 # Initialise the database
 def init_db():
-    with sqlite3.connect(DATABASE) as conn:
+    with get_db_connection() as conn:
         cursor = conn.cursor()
         
         # Users table - stores both regular users and admin
@@ -25,7 +83,7 @@ def init_db():
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 is_admin BOOLEAN DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at DATE DEFAULT (datetime('now','localtime'))
             )
         ''')
         
@@ -37,63 +95,24 @@ def init_db():
                 length TEXT NOT NULL,
                 quiz_question TEXT NOT NULL,
                 quiz_answer TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at DATE DEFAULT (datetime('now','localtime'))
             )
         ''')
         
-        # User training progress table
+        # Create user_training_progress table
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_training_progress (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
                 module_id INTEGER,
-                completed BOOLEAN DEFAULT 0,
-                completed_at TIMESTAMP NULL,
-                FOREIGN KEY (user_id) REFERENCES users (id),
-                FOREIGN KEY (module_id) REFERENCES training_modules (id),
-                UNIQUE(user_id, module_id)
-            )
+                completed BOOLEAN NOT NULL DEFAULT 0,
+                completed_at TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (module_id) REFERENCES training_modules(id),
+                PRIMARY KEY (user_id, module_id)
+            );
         ''')
 
-        # Create default admin user (username: 'admin', password: 'secret')
-        admin_user = ('admin', 'secret', 1)
-        # Check for admin first
-        cursor.execute("SELECT id FROM users WHERE username = ?", (admin_user[0],))
-        if not cursor.fetchone():
-            admin_password_hash = hash_password(admin_user[1])
-            cursor.execute('''
-                INSERT INTO users (username, password_hash, is_admin) 
-                VALUES (?, ?, ?)
-            ''', (admin_user[0], admin_password_hash, admin_user[2]))
-
-        test_users = [
-            ('user1', 'password123', 0),
-            ('user2', 'password456', 0)
-        ]
-
-        # Fill database with test users 
-        for username, password, is_admin in test_users:
-            # Check if user exists before inserting
-            cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
-            if not cursor.fetchone():
-                password_hash = hash_password(password)
-                cursor.execute('''
-                    INSERT INTO users (username, password_hash, is_admin) 
-                    VALUES (?, ?, ?)
-                ''', (username, password_hash, is_admin))
-
-        # Check if training modules already exist before inserting
-        cursor.execute('SELECT COUNT(*) FROM training_modules')
-        module_count = cursor.fetchone()[0]
-
-        if module_count == 0: # Only insert if no modules exist
-            cursor.execute('''
-                INSERT INTO training_modules (title, length, quiz_question, quiz_answer) 
-                VALUES (?, ?, ?, ?)
-            ''', ('Database 101', '10 minutes',
-                'What does SQL stand for?', 
-                'Structured Query Language'))
-
+        create_default_data(cursor)
         conn.commit()
 
 # Initialise the GUI
@@ -108,55 +127,42 @@ def index():
     
     user_id = session['user_id']
     
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-
-    # Check if the user is an admin
-    cursor.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
-    is_admin = cursor.fetchone()[0]
-    
     # Get error from the request arguments if it exists
     error = request.args.get('error', None)
 
-    if is_admin:
+    if is_user_admin(user_id):
         # Show admin dashboard
-        cursor.execute('SELECT * FROM users WHERE is_admin = 0 ORDER BY id ASC')
-        all_users = cursor.fetchall()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM users WHERE is_admin = 0 ORDER BY id ASC')
+            all_users = cursor.fetchall()
+            cursor.execute('SELECT * FROM training_modules ORDER BY id ASC')
+            all_modules = cursor.fetchall()
         
-        cursor.execute('SELECT * FROM training_modules ORDER BY id ASC')
-        all_modules = cursor.fetchall()
-        
-        conn.close()
         # Pass the is_admin_page variable as True
-        return render_template('admin.html', users=all_users, modules=all_modules, is_admin_page=True, error=error)
-    
+        return render_template('admin.html', users=all_users, modules=all_modules, 
+                            is_admin_page=True, error=error)
     else:
-        # Get incomplete training
-        cursor.execute('''
-            SELECT tm.title, tm.length, utp.completed, tm.id, tm.created_at
-            FROM training_modules tm
-            LEFT JOIN user_training_progress utp ON tm.id = utp.module_id AND utp.user_id = ?
-            WHERE utp.completed IS NULL OR utp.completed = 0
-            ORDER BY tm.created_at ASC
-        ''', (user_id,))
-        incomplete_training = cursor.fetchall()
+        # User dashboard - ensure progress records exist
+        ensure_user_progress_records(user_id)
         
-        # Get completed training
-        cursor.execute('''
-            SELECT tm.title, utp.completed_at
-            FROM training_modules tm
-            JOIN user_training_progress utp ON tm.id = utp.module_id
-            WHERE utp.user_id = ? AND utp.completed = 1
-            ORDER BY utp.completed_at ASC
-        ''', (user_id,))
-        completed_training = cursor.fetchall()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT tm.title, tm.length, utp.completed, utp.completed_at, tm.created_at, tm.id
+                FROM user_training_progress utp
+                JOIN training_modules tm ON utp.module_id = tm.id
+                WHERE utp.user_id = ?
+                ORDER BY utp.completed ASC, tm.created_at ASC
+            ''', (user_id,))
+            training_data = cursor.fetchall()
         
-        conn.close()
+        incomplete_training = [row for row in training_data if row[2] == 0]
+        completed_training = [row for row in training_data if row[2] == 1]
         
-        # Pass the is_admin_page variable as False
         return render_template('index.html', 
-                            incomplete_training=incomplete_training,
-                            completed_training=completed_training,
+                            incomplete_training=incomplete_training, 
+                            completed_training=completed_training, 
                             is_admin_page=False)
 
 # Login Page
@@ -169,12 +175,11 @@ def login():
         password = request.form['password']
         password_hash = hash_password(password)
         
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM users WHERE username = ? AND password_hash = ?', 
-                    (username, password_hash))
-        user = cursor.fetchone()
-        conn.close()
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM users WHERE username = ? AND password_hash = ?', 
+                        (username, password_hash))
+            user = cursor.fetchone()
         
         if user:
             session['user_id'] = user[0]  # Store user ID in session
@@ -195,7 +200,7 @@ def register():
         password_hash = hash_password(password)
         
         try:
-            with sqlite3.connect(DATABASE) as conn:
+            with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', 
                             (username, password_hash))
@@ -212,11 +217,10 @@ def take_training(module_id):
     if 'user_id' not in session:
         return redirect('/login')
     
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM training_modules WHERE id = ?', (module_id,))
-    module = cursor.fetchone()
-    conn.close()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM training_modules WHERE id = ?', (module_id,))
+        module = cursor.fetchone()
     
     return render_template('training.html', module=module)
 
@@ -225,38 +229,32 @@ def take_training(module_id):
 def submit_training(module_id):
     if 'user_id' not in session:
         return redirect('/login')
-    
+
     user_answer = request.form['answer']
     user_id = session['user_id']
     
     # Get the correct answer from database
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('SELECT quiz_answer FROM training_modules WHERE id = ?', (module_id,))
-    correct_answer = cursor.fetchone()[0]
-    
-    # Check if answer is correct (case-insensitive and trimmed)
-    if user_answer.lower().strip() == correct_answer.lower().strip():
-        # Mark as completed
-        cursor.execute('''
-            INSERT OR REPLACE INTO user_training_progress 
-            (user_id, module_id, completed, completed_at) 
-            VALUES (?, ?, 1, CURRENT_TIMESTAMP)
-        ''', (user_id, module_id))
-        conn.commit()
-        conn.close()
-        return redirect('/')
-    else:
-        conn.close()
-        # Get module info again to show error
-        conn = sqlite3.connect(DATABASE)
+    with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM training_modules WHERE id = ?', (module_id,))
-        module = cursor.fetchone()
-        conn.close()
+        cursor.execute('SELECT quiz_answer FROM training_modules WHERE id = ?', (module_id,))
+        correct_answer = cursor.fetchone()[0]
         
-        error = "Incorrect answer. Please try again."
-        return render_template('training.html', module=module, error=error)
+        # Check if answer is correct (case-insensitive and trimmed)
+        if user_answer.lower().strip() == correct_answer.lower().strip():
+            # Correctly update the existing record
+            cursor.execute('''
+                UPDATE user_training_progress 
+                SET completed = 1, completed_at = CURRENT_TIMESTAMP 
+                WHERE user_id = ? AND module_id = ?
+            ''', (user_id, module_id))
+            conn.commit()
+            return redirect('/')
+        else:
+            # Get module info again to show error
+            cursor.execute('SELECT * FROM training_modules WHERE id = ?', (module_id,))
+            module = cursor.fetchone()
+            error = "Incorrect answer. Please try again."
+            return render_template('training.html', module=module, error=error)
 
 # Buffer page for adding training
 @gui.route('/admin/add_module', methods=['POST'])
@@ -265,13 +263,7 @@ def admin_add_module():
         return redirect('/login')
 
     user_id = session['user_id']
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
-    is_admin = cursor.fetchone()[0]
-
-    if not is_admin:
-        conn.close()
+    if not is_user_admin(user_id):
         return redirect('/')
 
     title = request.form['title']
@@ -279,107 +271,84 @@ def admin_add_module():
     question = request.form['question']
     answer = request.form['answer']
     
-    error = None
-
-    # Regex validation for length field
+    # Regex validation for length format
     length_regex = r'^\d+\s(second|seconds|minute|minutes|hour|hours)$'
     if not re.match(length_regex, length):
         error = "Invalid length format. Please use 'number unit' (e.g., '10 minutes')."
+        return redirect(f'/?error={error}')
     
-    # If the regex validation passes, proceed with the database transaction
-    if error is None:
-        try:
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
             cursor.execute('''
                 INSERT INTO training_modules (title, length, quiz_question, quiz_answer) 
                 VALUES (?, ?, ?, ?)
             ''', (title, length, question, answer))
             
             module_id = cursor.lastrowid
+            
+            # Add progress records for all non-admin users
             cursor.execute('SELECT id FROM users WHERE is_admin = 0')
             users = cursor.fetchall()
             
             for user in users:
                 cursor.execute('''
-                    INSERT OR IGNORE INTO user_training_progress (user_id, module_id, completed) 
-                    VALUES (?, ?, 0)
+                    INSERT OR IGNORE INTO user_training_progress (user_id, module_id, completed, completed_at) 
+                    VALUES (?, ?, 0, NULL)
                 ''', (user[0], module_id))
             
             conn.commit()
-            conn.close()
-            return redirect('/')
+        
+        return redirect('/') # Redirect to the admin page on successful addition
 
-        except sqlite3.IntegrityError:
-            error = "A module with this title already exists."
-    
-    # If there was an error (either from regex or IntegrityError), this code will run
-    if error is not None:
-        cursor.execute('SELECT * FROM users WHERE is_admin = 0 ORDER BY id ASC')
-        all_users = cursor.fetchall()
-        cursor.execute('SELECT * FROM training_modules ORDER BY id ASC')
-        all_modules = cursor.fetchall()
-        conn.close()
-        return render_template('admin.html', 
-                                users=all_users, 
-                                modules=all_modules, 
-                                error=error)
+    except sqlite3.IntegrityError:
+        error = "A module with this title already exists."
+        return redirect(f'/?error={error}')
 
 # Page for printing a user's progress
 @gui.route('/admin/user_report/<int:user_id>')
 def user_report(user_id):
     if 'user_id' not in session:
         return redirect('/login')
-    
+
     # Check if current user is admin
-    current_user_id = session['user_id']
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('SELECT is_admin FROM users WHERE id = ?', (current_user_id,))
-    is_admin = cursor.fetchone()[0]
-    
-    if not is_admin:
-        conn.close()
+    if not is_user_admin(session['user_id']):
         return redirect('/')
-    
-    # Get user info
-    cursor.execute('SELECT username FROM users WHERE id = ?', (user_id,))
-    username = cursor.fetchone()[0]
-    
-    # Get the view type from the URL, default to 'incomplete'
-    view = request.args.get('view', 'incomplete')
 
-    completed_courses = []
-    incomplete_courses = []
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Get user info
+        cursor.execute('SELECT username FROM users WHERE id = ?', (user_id,))
+        report_user = cursor.fetchone()
+        
+        if not report_user:
+            return "User not found", 404
 
-    # Get completed courses (sorted by completion date)
-    if view == 'completed' or view == 'all':
+        # Get all training data for the user
         cursor.execute('''
-            SELECT tm.title, tm.length, utp.completed_at
-            FROM training_modules tm
-            JOIN user_training_progress utp ON tm.id = utp.module_id
+            SELECT tm.title, tm.length, utp.completed_at, tm.created_at
+            FROM user_training_progress utp
+            JOIN training_modules tm ON utp.module_id = tm.id
             WHERE utp.user_id = ? AND utp.completed = 1
-            ORDER BY utp.completed_at ASC
+            ORDER BY utp.completed_at DESC
         ''', (user_id,))
         completed_courses = cursor.fetchall()
-    
-    # Get incomplete courses (sorted by creation date)
-    if view == 'incomplete' or view == 'all':
+        
         cursor.execute('''
             SELECT tm.title, tm.length, tm.created_at
-            FROM training_modules tm
-            LEFT JOIN user_training_progress utp ON tm.id = utp.module_id AND utp.user_id = ?
-            WHERE utp.completed IS NULL OR utp.completed = 0
-            ORDER BY tm.created_at ASC
+            FROM user_training_progress utp
+            JOIN training_modules tm ON utp.module_id = tm.id
+            WHERE utp.user_id = ? AND utp.completed = 0
+            ORDER BY tm.title ASC
         ''', (user_id,))
         incomplete_courses = cursor.fetchall()
     
-    conn.close()
-    
-    return render_template('user_report.html', 
-                        username=username, 
-                        user_id=user_id,
-                        completed_courses=completed_courses,
+    return render_template('user_report.html',
+                        username=report_user[0],
                         incomplete_courses=incomplete_courses,
-                        view=view)
+                        completed_courses=completed_courses,
+                        is_admin_page=True)
 
 # Nukes the database
 @gui.route('/admin/reset_db')
@@ -388,18 +357,10 @@ def admin_reset_db():
         return redirect('/login')
 
     # Check if current user is admin
-    user_id = session['user_id']
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-    cursor.execute('SELECT is_admin FROM users WHERE id = ?', (user_id,))
-    user_data = cursor.fetchone()
-
-    if not user_data or not user_data[0]:
-        conn.close()
+    if not is_user_admin(session['user_id']):
         return redirect('/')  # Redirect non-admins
 
     # Delete the database file
-    conn.close()
     if os.path.exists(DATABASE):
         os.remove(DATABASE)
     

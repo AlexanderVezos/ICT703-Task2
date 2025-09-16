@@ -21,22 +21,22 @@
     <div id="incomplete-table" class="section-card">
         <h3>Incomplete Training</h3>
         <div class="table-container">
-            <table>
-                <tr>
-                    <th>Training Module</th>
-                    <th>Length</th>
-                    <th>Creation Date</th>
-                    <th>Action</th>
-                </tr>
-                {% for row in incomplete_training %}
-                <tr>
-                    <td>{{ row[0] }}</td>
-                    <td>{{ row[1] }}</td>
-                    <td>{{ row[4] }}</td>
-                    <td><a href="/training/{{ row[3] }}">Take Training</a></td>
-                </tr>
-                {% endfor %}
-            </table>
+        <table>
+            <tr>
+                <th>Training Module</th>
+                <th>Length</th>
+                <th>Creation Date</th>
+                <th>Action</th>
+            </tr>
+            {% for row in incomplete_training %}
+            <tr>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[4] }}</td>
+                <td><a href="/training/{{ row[5] }}">Take Training</a></td>
+            </tr>
+            {% endfor %}
+        </table>
         </div>
     </div>
 
@@ -51,7 +51,7 @@
                 {% for row in completed_training %}
                 <tr>
                     <td>{{ row[0] }}</td>
-                    <td>{{ row[1] }}</td>
+                    <td>{{ row[3] }}</td>
                 </tr>
                 {% endfor %}
             </table>
