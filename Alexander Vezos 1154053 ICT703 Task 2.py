@@ -90,7 +90,7 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS training_modules (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT UNIQUE NOT NULL,
+                title TEXT UNIQUE NOT NULL CHECK(length(title) <= 100),
                 length TEXT NOT NULL,
                 quiz_question TEXT NOT NULL,
                 quiz_answer TEXT NOT NULL,
@@ -280,6 +280,11 @@ def admin_add_module():
     question = request.form['question']
     answer = request.form['answer']
     
+    # Validation for character limit on title
+    if len(title) > 100:
+        error = "Module title must be 100 characters or fewer."
+        return redirect(f'/?error={error}')
+
     # Regex validation for length format
     length_regex = r'^\d+\s(second|seconds|minute|minutes|hour|hours)$'
     if not re.match(length_regex, length):
