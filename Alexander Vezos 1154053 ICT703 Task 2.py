@@ -216,8 +216,8 @@ def register():
                 
             return redirect('/login') # Go back to login after success
         except sqlite3.IntegrityError: # Error handling (Too many characters/Username repeat)
-            if len(username) > 100:
-                error = "Username must be 100 characters or fewer."
+            if len(username) > 70:
+                error = "Username must be 70 characters or fewer."
             else:
                 error = "Username already exists!"
     
@@ -284,8 +284,8 @@ def admin_add_module():
     answer = request.form['answer']
     
     # Validation for character limit on title
-    if len(title) > 100:
-        error = "Module title must be 100 characters or fewer."
+    if len(title) > 70:
+        error = "Module title must be 70 characters or fewer."
         return redirect(f'/?error={error}')
 
     # Regex validation for length format
