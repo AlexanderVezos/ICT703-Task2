@@ -79,7 +79,7 @@ def init_db():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
+                username TEXT UNIQUE NOT NULL CHECK(length(username) <= 100),
                 password_hash TEXT NOT NULL,
                 is_admin BOOLEAN DEFAULT 0,
                 created_at DATE DEFAULT (datetime('now','localtime'))
@@ -104,7 +104,7 @@ def init_db():
                 user_id INTEGER,
                 module_id INTEGER,
                 completed BOOLEAN NOT NULL DEFAULT 0,
-                completed_at TIMESTAMP,
+                completed_at DATE,
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (module_id) REFERENCES training_modules(id),
                 PRIMARY KEY (user_id, module_id)
@@ -215,8 +215,11 @@ def register():
                 ensure_user_progress_records(user_id) # Ensure they must complete any undone training
                 
             return redirect('/login') # Go back to login after success
-        except sqlite3.IntegrityError:
-            error = "Username already exists!"
+        except sqlite3.IntegrityError: # Error handling (Too many characters/Username repeat)
+            if len(username) > 100:
+                error = "Username must be 100 characters or fewer."
+            else:
+                error = "Username already exists!"
     
     return render_template('register.html', error=error)
 
