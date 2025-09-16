@@ -1,5 +1,4 @@
 # Imports
-import os
 import sqlite3 # For local SQL Database for data storage
 import hashlib # For keeping passwords secure
 import threading
@@ -15,7 +14,7 @@ def hash_password(password):
 
 # Helper function to get database connection
 def get_db_connection():
-    return sqlite3.connect(DATABASE)
+    return sqlite3.connect(DATABASE, check_same_thread=False)
 
 # Helper function to check if user is admin
 def is_user_admin(user_id):
@@ -39,7 +38,7 @@ def ensure_user_progress_records(user_id):
                 VALUES (?, ?, 0, NULL)
             ''', (user_id, module[0]))
         conn.commit()
-
+        
 # Create default users and modules if they don't exist
 def create_default_data(cursor):
     # Create default admin user (username: 'admin', password: 'secret')
@@ -114,6 +113,12 @@ def init_db():
 
         create_default_data(cursor)
         conn.commit()
+
+        # Ensure there is progress records for all modules
+        cursor.execute("SELECT id FROM users")
+        user_ids = [row[0] for row in cursor.fetchall()]
+        for user_id in user_ids:
+            ensure_user_progress_records(user_id)
 
 # Initialise the GUI
 gui = Flask(__name__)
@@ -193,18 +198,22 @@ def login():
 @gui.route('/register', methods=['GET', 'POST'])
 def register():
     error = None
-    
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         password_hash = hash_password(password)
-        
+
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute('INSERT INTO users (username, password_hash) VALUES (?, ?)', 
-                            (username, password_hash))
+                                (username, password_hash))
+                user_id = cursor.lastrowid # Get the new user's ID
                 conn.commit()
+                
+                ensure_user_progress_records(user_id) # Ensure they must complete any undone training
+                
             return redirect('/login') # Go back to login after success
         except sqlite3.IntegrityError:
             error = "Username already exists!"
@@ -244,7 +253,7 @@ def submit_training(module_id):
             # Correctly update the existing record
             cursor.execute('''
                 UPDATE user_training_progress 
-                SET completed = 1, completed_at = CURRENT_TIMESTAMP 
+                SET completed = 1, completed_at = (datetime('now','localtime'))
                 WHERE user_id = ? AND module_id = ?
             ''', (user_id, module_id))
             conn.commit()
@@ -284,19 +293,21 @@ def admin_add_module():
                 INSERT INTO training_modules (title, length, quiz_question, quiz_answer) 
                 VALUES (?, ?, ?, ?)
             ''', (title, length, question, answer))
-            
             module_id = cursor.lastrowid
             
-            # Add progress records for all non-admin users
+            # Get all non-admin user IDs
             cursor.execute('SELECT id FROM users WHERE is_admin = 0')
             users = cursor.fetchall()
-            
-            for user in users:
-                cursor.execute('''
-                    INSERT OR IGNORE INTO user_training_progress (user_id, module_id, completed, completed_at) 
-                    VALUES (?, ?, 0, NULL)
-                ''', (user[0], module_id))
-            
+
+            # Prepare bulk insert data
+            progress_records = [(user[0], module_id, 0, None) for user in users]
+
+            # Bulk insert all new progress records at once
+            cursor.executemany('''
+                INSERT OR IGNORE INTO user_training_progress (user_id, module_id, completed, completed_at) 
+                VALUES (?, ?, ?, ?)
+            ''', progress_records)
+
             conn.commit()
         
         return redirect('/') # Redirect to the admin page on successful addition
@@ -360,9 +371,12 @@ def admin_reset_db():
     if not is_user_admin(session['user_id']):
         return redirect('/')  # Redirect non-admins
 
-    # Delete the database file
-    if os.path.exists(DATABASE):
-        os.remove(DATABASE)
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute('DROP TABLE IF EXISTS user_training_progress')
+        cursor.execute('DROP TABLE IF EXISTS users')
+        cursor.execute('DROP TABLE IF EXISTS training_modules')
+        conn.commit()
     
     # Recreate fresh database
     init_db()
@@ -370,6 +384,7 @@ def admin_reset_db():
     # Clear session and redirect to login
     session.clear()
     return redirect('/login')
+
 
 # Logging out functionality
 @gui.route('/logout')
