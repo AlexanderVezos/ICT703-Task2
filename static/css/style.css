@@ -192,7 +192,7 @@ textarea::placeholder {
 .table-container {
     margin: var(--spacing-xl) 0;
     border-radius: var(--radius-lg);
-    overflow: hidden;
+    overflow-x: auto;
     box-shadow: var(--shadow-lg);
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
