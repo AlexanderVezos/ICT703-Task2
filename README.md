@@ -26,7 +26,7 @@ source [your venv name]/bin/activate
 pip install -r requirements.txt
 
 # Run the application
-py Alexander_Vezos_1154053_ICT703_Task 2.py
+py AlexanderVezos_1154053_ICT703_Task2.py
 
 # When finished, deactivate (optional)
 deactivate
