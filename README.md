@@ -46,6 +46,7 @@ Password: secret
 User features:
 - Complete training modules
 - View incomplete/completed training
+
 Admins features:
 - Create new training modules
 - View all users in the system
