@@ -2,13 +2,12 @@
 A simple Python program for a mock Cyber Security Training System
 
 ## Setup Instructions
-
-This project requires Python 3.x and uses external dependencies (Mainly Flask).
+This project requires Python 3.x and uses external dependencies (mainly Flask).
 
 ### Option 1: Quick Setup
 ```bash
 pip install -r requirements.txt
-py Alexander Vezos 1154053 ICT703 Task 2
+py AlexanderVezos_1154053_ICT703_Task2.py
 ```
 
 ### Option 2: Using Virtual Environment
@@ -26,11 +25,34 @@ source [your venv name]/bin/activate
 pip install -r requirements.txt
 
 # Run the application
-py Alexander Vezos 1154053 ICT703 Task 2
+py AlexanderVezos_1154053_ICT703_Task2.py
 
 # When finished, deactivate (optional)
 deactivate
 ```
+
+## How To Use
+The program starts with two inital accounts (A user and an admin). You are also able to register new users.
+### User Credentials:
+```
+Username: user1
+Password: password123
+```
+### Admin Credentials:
+```
+Username: admin
+Password: secret
+```
+User features:
+- Complete training modules
+- View incomplete/completed training
+
+Admins features:
+- Create new training modules
+- View all users in the system
+- View all modules in the system
+- View individual reports of the incomplete/completed training of a user
+- Reset the SQLite database
 
 ## Notes
 - Tested in virtual environment built on Python 3.13.7
