@@ -33,17 +33,18 @@ deactivate
 
 ## How To Use
 The program starts with two inital accounts (A user and an admin). You are also able to register new users.
-```
-User Credentials:
 
+### User Credentials:
+```
 Username: user1
 Password: password123
-
-Admin Credentials:
-
+```
+### Admin Credentials:
+```
 Username: admin
 Password: secret
 ```
+
 User features:
 - Complete training modules
 - View incomplete/completed training
