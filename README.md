@@ -32,7 +32,7 @@ deactivate
 ```
 
 ## How To Use
-The program starts with two inital accounts (A user and an admin). You are also able to register new users.
+The program starts with two initial accounts (A user and an admin). You are also able to register new users.
 ### User Credentials:
 ```
 Username: user1
